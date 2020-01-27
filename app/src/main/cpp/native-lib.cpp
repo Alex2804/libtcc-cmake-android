@@ -2,6 +2,9 @@
 
 #include <string>
 
+#include "tcc/libtcc_ext.h"
+#include "libs/libtcc/extension/src/private/utility.h"
+
 std::string jstring2string(JNIEnv *env, jstring jStr) {
     if (!jStr)
         return "";
@@ -21,11 +24,68 @@ std::string jstring2string(JNIEnv *env, jstring jStr) {
     return ret;
 }
 
+std::string errorString;
+void errorFunction(void* opaque, const char* errorString)
+{
+    ::errorString.append(errorString).append("\n");
+}
+
+char* test(const char* string)
+{
+    char* ret = (char*)malloc(strlen(string) + 1);
+    memcpy(ret, string, strlen(string) + 1);
+    return ret;
+}
+
+typedef struct {
+    const char* s1;
+    const char* s2;
+} TestStruct;
+
+TestStruct testStruct = {"string 1", "string 2"};
+
 extern "C" JNIEXPORT jstring JNICALL
 Java_de_alex2804_libtcctest_MainActivity_stringFromJNI(
         JNIEnv *env,
         jobject /* this */,
         jstring filesPath)
 {
-    return env->NewStringUTF(jstring2string(env, filesPath).c_str());
+    int result;
+    const char* string = "int test() {\n"
+                         "  return 4*4*4*4;\n"
+                         "}";
+
+    std::string basePath = jstring2string(env, filesPath);
+    std::string srcPath = basePath + "lib_libtcc1/";
+    std::string destPath = basePath + "lib/";
+    std::string includePath = basePath + "include";
+    atcc_set_libtcc1_src_path(srcPath.c_str());
+    atcc_set_libtcc1_dest_path(destPath.c_str());
+    atcc_set_libtcc1_obj_path(destPath.c_str());
+    atcc_set_include_path(includePath.c_str());
+    atcc_set_error_func(nullptr, errorFunction);
+    result = atcc_build_libtcc1();
+
+    TCCState *tccState = tcc_new();
+    result = tcc_add_sysinclude_path(tccState, (basePath + "include").c_str());
+    result = tcc_add_library_path(tccState, "/system/lib");
+    result = tcc_add_library_path(tccState, "/system/lib64");
+    tcc_set_lib_path(tccState, destPath.c_str());
+
+    result = tcc_set_output_type(tccState, TCC_OUTPUT_MEMORY);
+
+    result = tcc_compile_string(tccState, string);
+    result = tcc_relocate(tccState, TCC_RELOCATE_AUTO);
+
+    int (*func)();
+    func = reinterpret_cast<int(*)()>(tcc_get_symbol(tccState, "test"));
+
+    if(func != nullptr)
+        result = func(); // 256
+
+    tcc_delete(tccState);
+
+    if(errorString.empty())
+        errorString.append("Success if 256: ").append(std::to_string(result));
+    return env->NewStringUTF(errorString.c_str());
 }
