@@ -67,7 +67,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        copyAssetFolder("include", getFilesDir().getAbsolutePath() + "/include");
+        //copyAssetFolder("include", getFilesDir().getAbsolutePath() + "/include");
 
         // Example of a call to a native method
         TextView tv = findViewById(R.id.sample_text);
