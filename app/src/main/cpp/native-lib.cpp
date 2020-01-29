@@ -3,7 +3,6 @@
 #include <string>
 
 #include "tcc/libtcc_ext.h"
-#include "libs/libtcc/extension/src/private/utility.h"
 
 std::string jstring2string(JNIEnv *env, jstring jStr) {
     if (!jStr)
@@ -30,33 +29,22 @@ void errorFunction(void* opaque, const char* errorString)
     ::errorString.append(errorString).append("\n");
 }
 
-char* test(const char* string)
-{
-    char* ret = (char*)malloc(strlen(string) + 1);
-    memcpy(ret, string, strlen(string) + 1);
-    return ret;
-}
-
-typedef struct {
-    const char* s1;
-    const char* s2;
-} TestStruct;
-
-TestStruct testStruct = {"string 1", "string 2"};
-
 extern "C" JNIEXPORT jstring JNICALL
 Java_de_alex2804_libtcctest_MainActivity_stringFromJNI(
         JNIEnv *env,
         jobject /* this */,
+        jobject assetManager,
         jstring filesPath)
 {
+    atcc_set_asset_manager(env, assetManager);
+
     int result;
     const char* string = "int test() {\n"
                          "  return 4*4*4*4;\n"
                          "}";
 
     std::string basePath = jstring2string(env, filesPath);
-    std::string srcPath = basePath + "lib_libtcc1/";
+    std::string srcPath = "lib_libtcc1/";
     std::string destPath = basePath + "lib/";
     std::string includePath = basePath + "include";
     atcc_set_libtcc1_src_path(srcPath.c_str());

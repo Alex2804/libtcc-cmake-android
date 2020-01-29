@@ -2,7 +2,9 @@ package de.alex2804.libtcctest;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.res.AssetManager;
 import android.os.Bundle;
+import android.text.method.ScrollingMovementMethod;
 import android.widget.TextView;
 
 import java.io.File;
@@ -60,23 +62,23 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        copyAssetFolder("lib_libtcc1", getFilesDir().getAbsolutePath() + "/lib_libtcc1");
         copyAssetFolder("include", getFilesDir().getAbsolutePath() + "/include");
 
         // Example of a call to a native method
         TextView tv = findViewById(R.id.sample_text);
-        tv.setText(stringFromJNI(getFilesDir().getAbsolutePath() + "/"));
+        tv.setMovementMethod(new ScrollingMovementMethod());
+        AssetManager assetManager = getAssets();
+        tv.setText(stringFromJNI(assetManager, getFilesDir().getAbsolutePath() + "/"));
     }
 
     /**
      * A native method that is implemented by the 'native-lib' native library,
      * which is packaged with this application.
      */
-    public native String stringFromJNI(String filesPath);
+    public native String stringFromJNI(AssetManager assetManager, String filesPath);
 }
