@@ -6,7 +6,7 @@
 [subrepo]
 	remote = https://github.com/Alex2804/libtcc-cmake
 	branch = master
-	commit = 37f2ffd379b65846e1bb873e60f5bd31cc0db65c
-	parent = 7221e02c54cf103ddcd8b2ceed58f287467f8cde
+	commit = f2f85856955c25e1f1043c7366d8c18dc4d3e0ea
+	parent = 15a1b5a708a9cf1eef294f3f2862881233c4d40e
 	method = merge
 	cmdver = 0.4.1
