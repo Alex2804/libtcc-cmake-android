@@ -1,0 +1,12 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/git-commands/git-subrepo#readme
+;
+[subrepo]
+	remote = https://github.com/Alex2804/libtcc-cmake
+	branch = master
+	commit = b79ff0267e5b76d7240a13f1bc658c82ede5a10b
+	parent = 9839430697f01887d6c03c5c10264dc4549a5ebf
+	method = merge
+	cmdver = 0.4.1
