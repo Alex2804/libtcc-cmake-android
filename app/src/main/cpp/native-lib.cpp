@@ -1,6 +1,7 @@
 #include <jni.h>
 
 #include <string>
+#include <cmath>
 
 #include <android/asset_manager_jni.h>
 
@@ -30,7 +31,6 @@ void errorFunction(void* opaque, const char* errorString)
 {
     ::errorString.append(errorString).append("\n");
 }
-
 extern "C" JNIEXPORT jstring JNICALL
 Java_de_alex2804_libtcctest_MainActivity_stringFromJNI(
         JNIEnv *env,
@@ -39,46 +39,54 @@ Java_de_alex2804_libtcctest_MainActivity_stringFromJNI(
         jstring filesPath)
 {
     AAssetManager* aAssetManager = AAssetManager_fromJava(env, assetManager);
-    tcc_set_asset_manager(aAssetManager);
+    atcc_set_asset_manager(aAssetManager);
 
-    int result;
-    const char* string = "int test() {\n"
-                         "  return 4*4*4*4;\n"
+    const char* string = "#include <math.h>"
+                         "#include <string.h>"
+                         "#include <stdlib.h>"
+                         "double test() {"
+                         "  return pow(4, 4);"
+                         "}"
+                         "char* test2(const char* string) {"
+                         "  size_t len = strlen(string);"
+                         "  char* copy = (void*) malloc(sizeof(char) * (len + 2));"
+                         "  memcpy(copy, string, len + 1);"
+                         "  strcat(copy, \"!\");"
+                         "  return copy;"
                          "}";
 
     std::string basePath = jstring2string(env, filesPath);
-    std::string srcPath = "lib_libtcc1/";
-    std::string destPath = basePath + "lib/";
-    std::string includePath = "include";
-    atcc_set_libtcc1_src_path(srcPath.c_str());
+    std::string destPath = basePath + "lib";
     atcc_set_libtcc1_dest_path(destPath.c_str());
     atcc_set_libtcc1_obj_path(destPath.c_str());
-    atcc_set_include_path(includePath.c_str());
     atcc_set_error_func(nullptr, errorFunction);
-    result = atcc_build_libtcc1();
+    atcc_build_libtcc1();
 
     TCCState *tccState = atcc_new();
     if(tccState != NULL) {
-        result = tcc_add_sysinclude_path(tccState, includePath.c_str());
-        result = tcc_add_library_path(tccState, "/system/lib");
-        result = tcc_add_library_path(tccState, "/system/lib64");
-        tcc_set_lib_path(tccState, destPath.c_str());
+        double testResult = -1;
+        char* test2Result = nullptr;
 
-        result = tcc_set_output_type(tccState, TCC_OUTPUT_MEMORY);
+        tcc_set_output_type(tccState, TCC_OUTPUT_MEMORY);
 
-        result = tcc_compile_string(tccState, string);
-        result = tcc_relocate(tccState, TCC_RELOCATE_AUTO);
+        tcc_compile_string(tccState, string);
+        tcc_relocate(tccState, TCC_RELOCATE_AUTO);
 
-        int (*func)();
-        func = reinterpret_cast<int (*)()>(tcc_get_symbol(tccState, "test"));
+        double (*testFunc)();
+        testFunc = reinterpret_cast<double (*)()>(tcc_get_symbol(tccState, "test"));
+        char* (*test2Func)(const char*);
+        test2Func = reinterpret_cast<char*(*)(const char*)>(tcc_get_symbol(tccState, "test2"));
 
-        if (func != nullptr)
-            result = func(); // 256
+        if (testFunc != nullptr)
+            testResult = testFunc(); // 256
+        if(test2Func != nullptr)
+            test2Result = test2Func("Hallo Welt");
 
         tcc_delete(tccState);
 
         if (errorString.empty())
-            errorString.append("Success if 256: ").append(std::to_string(result));
+            errorString.append("Test Success if 256: ").append(std::to_string(testResult)).append("\nTest2 Success if \"Hallo Welt!\": ").append(test2Result);
+        std::free(test2Result);
     } else if(errorString.empty()) {
         errorString.append("Errors Occured!");
     }
