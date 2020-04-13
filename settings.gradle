@@ -1,2 +1,2 @@
 include ':app'
-rootProject.name='LibtccTest'
+rootProject.name='libtcc-cmake-android'
