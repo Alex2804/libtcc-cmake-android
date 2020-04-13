@@ -41,11 +41,10 @@ Java_de_alex2804_libtcctest_MainActivity_stringFromJNI(
     AAssetManager* aAssetManager = AAssetManager_fromJava(env, assetManager);
     atcc_set_asset_manager(aAssetManager);
 
-    const char* string = "#include <math.h>"
-                         "#include <string.h>"
+    const char* string = "#include <string.h>"
                          "#include <stdlib.h>"
-                         "double test() {"
-                         "  return pow(4, 4);"
+                         "int test() {"
+                         "  return 4*4*4*4;"
                          "}"
                          "char* test2(const char* string) {"
                          "  size_t len = strlen(string);"
@@ -64,7 +63,7 @@ Java_de_alex2804_libtcctest_MainActivity_stringFromJNI(
 
     TCCState *tccState = atcc_new();
     if(tccState != NULL) {
-        double testResult = -1;
+        int testResult = -1;
         char* test2Result = nullptr;
 
         tcc_set_output_type(tccState, TCC_OUTPUT_MEMORY);
@@ -72,8 +71,8 @@ Java_de_alex2804_libtcctest_MainActivity_stringFromJNI(
         tcc_compile_string(tccState, string);
         tcc_relocate(tccState, TCC_RELOCATE_AUTO);
 
-        double (*testFunc)();
-        testFunc = reinterpret_cast<double (*)()>(tcc_get_symbol(tccState, "test"));
+        int (*testFunc)();
+        testFunc = reinterpret_cast<int (*)()>(tcc_get_symbol(tccState, "test"));
         char* (*test2Func)(const char*);
         test2Func = reinterpret_cast<char*(*)(const char*)>(tcc_get_symbol(tccState, "test2"));
 
