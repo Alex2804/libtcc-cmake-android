@@ -27,6 +27,14 @@ ST_FUNC int tcc_tool_ar(TCCState *s, int argc, char **argv);
 # define ALIBTCC_INCLUDE_PATH "include"
 #endif
 
+#ifndef ALIBTCC_SYSINCLUDE_PATH
+# ifdef TCC_TARGET_PE
+#  define ALIBTCC_SYSINCLUDE_PATH ALIBTCC_INCLUDE_PATH "/winapi"
+# else
+#  define ALIBTCC_SYSINCLUDE_PATH "/usr/include"
+# endif
+#endif
+
 typedef struct {
     TCCErrorFunc error_function;
     void* error_opaque;
@@ -64,10 +72,8 @@ void atcc_configure_state(TCCState* state)
         tcc_add_library_path(state, "/system/lib64");
 #endif
 
-#ifdef _WIN32
-        tcc_add_sysinclude_path(state, "include/winapi");
-#else
-        tcc_add_sysinclude_path(state, "/usr/include");
+#ifdef ALIBTCC_SYSINCLUDE_PATH
+        tcc_add_sysinclude_path(state, ALIBTCC_SYSINCLUDE_PATH);
 #endif
         if(aTccExtensionVariables.include_path != NULL)
             tcc_add_include_path(state, aTccExtensionVariables.include_path);
@@ -131,6 +137,9 @@ int atcc_build_libtcc1()
 
     state = tcc_new();
     atcc_configure_state(state);
+#ifdef TCC_TARGET_MACHO
+    tcc_define_symbol(state, "_ANSI_SOURCE", "1");
+#endif
 
     if((result = tcc_set_output_type(state, TCC_OUTPUT_OBJ)) != 0) {
         tcc_delete(state);
