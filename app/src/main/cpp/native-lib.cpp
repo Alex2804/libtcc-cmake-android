@@ -43,8 +43,12 @@ Java_de_alex2804_libtcctest_MainActivity_stringFromJNI(
 
     const char* string = "#include <string.h>"
                          "#include <stdlib.h>"
-                         "int test() {"
-                         "  return 4*4*4*4;"
+                         "#include <math.h>"
+                         "double internalTestFunction(double x) {"
+                         "  return x*x*x*x;"
+                         "}"
+                         "int test1() {"
+                         "  return (int) internalTestFunction(4);"
                          "}"
                          "char* test2(const char* string) {"
                          "  size_t len = strlen(string);"
@@ -52,6 +56,9 @@ Java_de_alex2804_libtcctest_MainActivity_stringFromJNI(
                          "  memcpy(copy, string, len + 1);"
                          "  strcat(copy, \"!\");"
                          "  return copy;"
+                         "}"
+                         "double test3() {"
+                         "  return internalTestFunction(4);"
                          "}";
 
     std::string basePath = jstring2string(env, filesPath);
@@ -63,28 +70,35 @@ Java_de_alex2804_libtcctest_MainActivity_stringFromJNI(
 
     TCCState *tccState = atcc_new();
     if(tccState != NULL) {
-        int testResult = -1;
-        char* test2Result = nullptr;
+        int test1Result = -1;
+        char *test2Result = nullptr;
+        double test3Result = -1;
 
         tcc_set_output_type(tccState, TCC_OUTPUT_MEMORY);
 
         tcc_compile_string(tccState, string);
         tcc_relocate(tccState, TCC_RELOCATE_AUTO);
 
-        int (*testFunc)();
-        testFunc = reinterpret_cast<int (*)()>(tcc_get_symbol(tccState, "test"));
-        char* (*test2Func)(const char*);
-        test2Func = reinterpret_cast<char*(*)(const char*)>(tcc_get_symbol(tccState, "test2"));
+        int(*test1Func)();
+        test1Func = reinterpret_cast<decltype(test1Func)>(tcc_get_symbol(tccState, "test1"));
+        char*(*test2Func)(const char*);
+        test2Func = reinterpret_cast<decltype(test2Func)>(tcc_get_symbol(tccState, "test2"));
+        double(*test3Func)();
+        test3Func = reinterpret_cast<decltype(test3Func)>(tcc_get_symbol(tccState, "test3"));
 
-        if (testFunc != nullptr)
-            testResult = testFunc(); // 256
+        if (test1Func != nullptr)
+            test1Result = test1Func(); // should be 256
         if(test2Func != nullptr)
             test2Result = test2Func("Hallo Welt");
+        if(test3Func != nullptr)
+            test3Result = test3Func();
 
         tcc_delete(tccState);
 
         if (errorString.empty())
-            errorString.append("Test Success if 256: ").append(std::to_string(testResult)).append("\nTest2 Success if \"Hallo Welt!\": ").append(test2Result);
+            errorString.append("Test 1 Success if 256: ").append(std::to_string(test1Result))
+                       .append("\nTest 2 Success if \"Hallo Welt!\": ").append(test2Result)
+                       .append("\nTest 3 Success if 256: ").append(std::to_string(test3Result));
         std::free(test2Result);
     } else if(errorString.empty()) {
         errorString.append("Errors Occured!");
