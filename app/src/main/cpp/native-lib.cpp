@@ -31,6 +31,7 @@ void errorFunction(void* opaque, const char* errorString)
 {
     ::errorString.append(errorString).append("\n");
 }
+
 extern "C" JNIEXPORT jstring JNICALL
 Java_de_alex2804_libtcctest_MainActivity_stringFromJNI(
         JNIEnv *env,
@@ -45,20 +46,33 @@ Java_de_alex2804_libtcctest_MainActivity_stringFromJNI(
                          "#include <stdlib.h>"
                          "#include <math.h>"
                          "double internalTestFunction(double x) {"
-                         "  return x*x*x*x;"
+                         "  return x+1;"
                          "}"
                          "int test1() {"
                          "  return (int) internalTestFunction(4);"
                          "}"
-                         "char* test2(const char* string) {"
+                         "float test2() {"
+                         "  return (float) internalTestFunction(4);"
+                         "}"
+                         "float* test2Ptr() {"
+                         "  float *resultPtr = malloc(sizeof(float));"
+                         "  *resultPtr = (float) internalTestFunction(4);"
+                         "  return resultPtr;"
+                         "}"
+                         "double test3() {"
+                         "  return internalTestFunction(4);"
+                         "}"
+                         "double* test3Ptr() {"
+                         "  double *resultPtr = malloc(sizeof(double));"
+                         "  *resultPtr = internalTestFunction(4);"
+                         "  return resultPtr;"
+                         "}"
+                         "char* test4(const char* string) {"
                          "  size_t len = strlen(string);"
                          "  char* copy = (void*) malloc(sizeof(char) * (len + 2));"
                          "  memcpy(copy, string, len + 1);"
                          "  strcat(copy, \"!\");"
                          "  return copy;"
-                         "}"
-                         "double test3() {"
-                         "  return internalTestFunction(4);"
                          "}";
 
     std::string basePath = jstring2string(env, filesPath);
@@ -71,8 +85,11 @@ Java_de_alex2804_libtcctest_MainActivity_stringFromJNI(
     TCCState *tccState = atcc_new();
     if(tccState != NULL) {
         int test1Result = -1;
-        char *test2Result = nullptr;
+        float test2Result = -1;
+        float *test2PtrResult = nullptr;
         double test3Result = -1;
+        double *test3PtrResult = nullptr;
+        char *test4Result = nullptr;
 
         tcc_set_output_type(tccState, TCC_OUTPUT_MEMORY);
 
@@ -81,25 +98,43 @@ Java_de_alex2804_libtcctest_MainActivity_stringFromJNI(
 
         int(*test1Func)();
         test1Func = reinterpret_cast<decltype(test1Func)>(tcc_get_symbol(tccState, "test1"));
-        char*(*test2Func)(const char*);
+        float(*test2Func)();
         test2Func = reinterpret_cast<decltype(test2Func)>(tcc_get_symbol(tccState, "test2"));
+        float*(*test2PtrFunc)();
+        test2PtrFunc = reinterpret_cast<decltype(test2PtrFunc)>(tcc_get_symbol(tccState, "test2Ptr"));
         double(*test3Func)();
-        test3Func = reinterpret_cast<decltype(test3Func)>(tcc_get_symbol(tccState, "test3"));
+        test3Func = reinterpret_cast<decltype(test3Func)>(tcc_get_symbol(tccState, "test3"));;
+        double*(*test3PtrFunc)();
+        test3PtrFunc = reinterpret_cast<decltype(test3PtrFunc)>(tcc_get_symbol(tccState, "test3Ptr"));
+        char*(*test4Func)(const char*);
+        test4Func = reinterpret_cast<decltype(test4Func)>(tcc_get_symbol(tccState, "test4"));
 
         if (test1Func != nullptr)
-            test1Result = test1Func(); // should be 256
-        if(test2Func != nullptr)
-            test2Result = test2Func("Hallo Welt");
+            test1Result = test1Func();
+        if (test2Func != nullptr)
+            test2Result = test2Func();
+        if (test2PtrFunc != nullptr)
+            test2PtrResult = test2PtrFunc();
         if(test3Func != nullptr)
             test3Result = test3Func();
+        if(test3PtrFunc != nullptr)
+            test3PtrResult = test3PtrFunc();
+        if(test4Func != nullptr)
+            test4Result = test4Func("Hallo Welt");
 
         tcc_delete(tccState);
 
-        if (errorString.empty())
-            errorString.append("Test 1 Success if 256: ").append(std::to_string(test1Result))
-                       .append("\nTest 2 Success if \"Hallo Welt!\": ").append(test2Result)
-                       .append("\nTest 3 Success if 256: ").append(std::to_string(test3Result));
-        std::free(test2Result);
+        if (errorString.empty()) {
+            errorString.append("Test 1 Success if 5: ").append(std::to_string(test1Result))
+                       .append("\nTest 2 Success if 5: ").append(std::to_string(test2Result))
+                       .append("\nTest 2 Pointer Success if 5: ").append(std::to_string(*test2PtrResult))
+                       .append("\nTest 3 Success if 5: ").append(std::to_string(test3Result))
+                       .append("\nTest 3 Pointer Success if 5: ").append(std::to_string(*test3PtrResult))
+                       .append("\nTest 4 Success if \"Hallo Welt!\": ").append(test4Result);
+        }
+        std::free(test2PtrResult);
+        std::free(test3PtrResult);
+        std::free(test4Result);
     } else if(errorString.empty()) {
         errorString.append("Errors Occured!");
     }
